@@ -46,7 +46,7 @@ public class Sudoku {
     /**
      * Assert the Rep invariant as stated above.
      */
-    public void checkRep() {
+    private void checkRep() {
         assert blockSize > 0;
         assert puzzleSize > 0;
         assert blockSize * blockSize == puzzleSize;
@@ -58,6 +58,39 @@ public class Sudoku {
             for (int c = 0; c < puzzleSize; c++) {
                 int value = puzzle[r][c];
                 assert value >= 0 && value <= puzzleSize;
+            }
+        }
+        for (int r = 0; r < puzzleSize; r++) {
+            Set<Integer> rowVals = new HashSet<>();
+            for (int c = 0; c < puzzleSize; c++) {
+                int val = puzzle[r][c];
+                if (1 <= val && val <= puzzleSize) {
+                    assert rowVals.add(val);
+                }
+            }
+        }
+        for (int c = 0; c < puzzleSize; c++) {
+            Set<Integer> colVals = new HashSet<>();
+            for (int r = 0; r < puzzleSize; r++) {
+                int val = puzzle[r][c];
+                if (1 <= val && val <= puzzleSize) {
+                    assert colVals.add(val);
+                }
+            }
+        }
+        for (int row = 0; row < puzzleSize; row += blockSize) {
+            for (int col = 0; col < puzzleSize; col += blockSize) {
+                Set<Integer> blockVals = new HashSet<>();
+                int startRow = row / blockSize * blockSize;
+                int startCol = col / blockSize * blockSize;
+                for (int r = startRow; r < startRow + blockSize; r++) {
+                    for (int c = startCol; c < startCol + blockSize; c++) {
+                        int val = puzzle[r][c];
+                        if (1 <= val && val <= puzzleSize) {
+                            assert blockVals.add(val);
+                        }
+                    }
+                }
             }
         }
     }
@@ -88,7 +121,7 @@ public class Sudoku {
      * @param row the row of interest, 0 <= row < puzzleSize
      * @return the set of all non-zero values in the row
      */
-    public Set<Integer> getRowVals(int row) {
+    private Set<Integer> getRowVals(int row) {
         Set<Integer> rowVals = new HashSet<>();
         for (int i = 0; i < puzzleSize; i++) {
             int val = puzzle[row][i];
@@ -106,7 +139,7 @@ public class Sudoku {
      * @param col the column of interest, 0 <= col < puzzleSize
      * @return the set of all non-zero values in the column
      */
-    public Set<Integer> getColVals(int col) {
+    private Set<Integer> getColVals(int col) {
         Set<Integer> colVals = new HashSet<>();
         for (int i = 0; i < puzzleSize; i++) {
             int val = puzzle[i][col];
@@ -128,7 +161,7 @@ public class Sudoku {
      * @return the set of all non-zero values in the block that
      *      contains the cell at (row, col)
      */
-    public Set<Integer> getBlockVals(int row, int col) {
+    private Set<Integer> getBlockVals(int row, int col) {
         Set<Integer> blockVals = new HashSet<>();
         int startRow = row / blockSize * blockSize;
         int startCol = col / blockSize * blockSize;
@@ -150,35 +183,39 @@ public class Sudoku {
      * @return true if the puzzle is now solved
      */
     public boolean solve() {
-        // find empty cell
-        for (int r = 0; r < puzzleSize; r++) {
-            for (int c = 0; c < puzzleSize; c++) {
-                int val = puzzle[r][c];
-                if (val < 1 || val > puzzleSize) {
-                    Set<Integer> invalidVals = new HashSet<>();
-                    invalidVals.addAll(getRowVals(r));
-                    invalidVals.addAll(getColVals(c));
-                    invalidVals.addAll(getBlockVals(r, c));
-                    
-                    // choose value not in invalidVals
-                    for (int i = 1; i <= puzzleSize; i++) {
-                        if (!invalidVals.contains(i)) {
-                            puzzle[r][c] = i;
-                            if (solve()) { 
-                                // puzzle can be solved with this cell value
-                                return true;
+        try {
+            // find empty cell
+            for (int r = 0; r < puzzleSize; r++) {
+                for (int c = 0; c < puzzleSize; c++) {
+                    int val = puzzle[r][c];
+                    if (val < 1 || val > puzzleSize) {
+                        Set<Integer> invalidVals = new HashSet<>();
+                        invalidVals.addAll(getRowVals(r));
+                        invalidVals.addAll(getColVals(c));
+                        invalidVals.addAll(getBlockVals(r, c));
+                        
+                        // choose value not in invalidVals
+                        for (int i = 1; i <= puzzleSize; i++) {
+                            if (!invalidVals.contains(i)) {
+                                puzzle[r][c] = i;
+                                if (solve()) { 
+                                    // puzzle can be solved with this cell value
+                                    return true;
+                                }
+                                // puzzle can't be solved with this cell value
+                                // clear selection and try different value
+                                puzzle[r][c] = 0; // TODO is this needed 
                             }
-                            // puzzle can't be solved with this cell value
-                            // clear selection and try different value
-                            puzzle[r][c] = 0; // TODO is this needed 
                         }
+                        return false;
                     }
-                    return false;
                 }
             }
+            // no empty cells --> puzzle already solved
+            return true;
+        } finally {
+            checkRep();
         }
-        // no empty cells --> puzzle already solved
-        return true;
     }
     
     /**
